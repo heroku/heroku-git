@@ -1,33 +1,48 @@
-'use strict'
-/* global describe it */
+// @flow
 
-let sinon = require('sinon')
-let nock = require('nock')
-let expect = require('unexpected')
-let proxyquire = require('proxyquire')
+import GitClone from './clone'
+import nock from 'nock'
+const git = require('../git').default
+jest.mock('../git', () => ({
+  default: {
+    spawn: jest.fn(),
+    url: jest.fn()
+  }
+}))
 
-describe('git:clone', function () {
-  it('errors if no app given', function () {
-    let clone = require('..').commands.find((c) => c.topic === 'git' && c.command === 'clone')
+let api = nock('https://api.heroku.com')
+beforeEach(() => nock.cleanAll())
+afterEach(() => {
+  api.done()
+  jest.resetAllMocks()
+})
 
-    return expect(clone.run({flags: {}, args: []}),
-                  'to be rejected with', {message: 'Specify an app with --app'})
-  })
+it('errors if no app given', async () => {
+  expect.assertions(1)
 
-  it('clones the repo', function () {
-    let git = require('../mock/git')
-    let mock = sinon.mock(git)
-    mock.expects('spawn').withExactArgs(['clone', '-o', 'heroku', 'https://git.heroku.com/myapp.git', 'myapp']).returns(Promise.resolve()).once()
-    let clone = proxyquire('./clone', {'../git': () => git})
-    let api = nock('https://api.heroku.com')
-      .get('/apps/myapp')
-      .reply(200, {name: 'myapp'})
+  try {
+    await GitClone.mock()
+  } catch (err) {
+    expect(err.message).toEqual('Specify an app with --app')
+  }
+})
 
-    return clone.run({flags: {app: 'myapp'}, args: []})
-    .then(() => {
-      mock.verify()
-      mock.restore()
-      api.done()
-    })
-  })
+it('clones the repo', async () => {
+  api
+    .get('/apps/myapp')
+    .reply(200, {name: 'myapp'})
+  git.url.mockReturnValueOnce('https://git.heroku.com/myapp.git')
+  await GitClone.mock('--app', 'myapp')
+  expect(git.url).toHaveBeenCalledWith('myapp', undefined)
+  expect(git.spawn).toHaveBeenCalledWith(['clone', '-o', 'heroku', 'https://git.heroku.com/myapp.git', 'myapp'])
+})
+
+it('clones the repo with ssh-git', async () => {
+  api
+    .get('/apps/myapp')
+    .reply(200, {name: 'myapp'})
+  git.url.mockReturnValueOnce('git@heroku.com:myapp.git')
+  await GitClone.mock('--app', 'myapp', '--ssh-git')
+  expect(git.url).toHaveBeenCalledWith('myapp', true)
+  expect(git.spawn).toHaveBeenCalledWith(['clone', '-o', 'heroku', 'git@heroku.com:myapp.git', 'myapp'])
 })
