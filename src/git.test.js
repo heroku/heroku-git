@@ -3,7 +3,7 @@
 
 let sinon = require('sinon')
 let expect = require('unexpected')
-let git = require('../../lib/git')({httpGitHost: 'git.heroku.com', gitHost: 'heroku.com'})
+let git = require('./git')({httpGitHost: 'git.heroku.com', gitHost: 'heroku.com'})
 let cp = require('child_process')
 let EventEmitter = require('events')
 

@@ -11,9 +11,13 @@ describe('git:remote', function () {
   beforeEach(() => cli.mockConsole())
   afterEach(() => nock.cleanAll())
 
-  it('errors if no app', function () {
-    let git = require('../mock/git')
-    let remote = proxyquire('../../commands/git/remote', {'../../lib/git': () => git})
+  it.only('errors if no app', async () => {
+    // jest.mock('../git')
+    // const git = require('../git')
+    // git.mockImplementation(() => 42)
+    let remote = require('./remote')
+    console.dir(remote)
+    jest.expectations(1)
 
     return expect(
       remote.run({flags: {}, args: []}),
