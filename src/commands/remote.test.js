@@ -1,31 +1,24 @@
-'use strict'
-/* global describe it beforeEach afterEach */
+// @flow
 
-let sinon = require('sinon')
-let nock = require('nock')
-let proxyquire = require('proxyquire')
-let expect = require('unexpected')
-let cli = require('heroku-cli-util')
+import GitRemote from './remote'
+import nock from 'nock'
 
-describe('git:remote', function () {
-  beforeEach(() => cli.mockConsole())
-  afterEach(() => nock.cleanAll())
+const api = nock('https://api.heroku.com')
 
-  it.only('errors if no app', async () => {
-    // jest.mock('../git')
-    // const git = require('../git')
-    // git.mockImplementation(() => 42)
-    let remote = require('./remote')
-    console.dir(remote)
-    jest.expectations(1)
+beforeEach(() => nock.cleanAll())
+afterEach(() => api.done())
 
-    return expect(
-      remote.run({flags: {}, args: []}),
-      'to be rejected with',
-      {message: 'Specify an app with --app'})
+describe('git:remote', () => {
+  it('errors if no app', async () => {
+    expect.assertions(1)
+    try {
+      await GitRemote.mock()
+    } catch (err) {
+      expect(err.message).toEqual('Specify an app with --app')
+    }
   })
 
-  it('replaces an http-git remote', function () {
+  it.only('replaces an http-git remote', function () {
     let git = require('../mock/git')
     let mock = sinon.mock(git)
     mock.expects('exec').withExactArgs(['remote']).once().returns(Promise.resolve('heroku'))

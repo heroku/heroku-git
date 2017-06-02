@@ -1,51 +1,46 @@
-'use strict'
+// @flow
 
-// let co = require('co')
-// let cli = require('heroku-cli-util')
-// let git = require('../git')
+import {Command, flags} from 'cli-engine-heroku'
 
-// function includes (array, item) {
-//   return array.indexOf(item) !== -1
-// }
+export default class GitRemote extends Command {
+  static topic = 'git'
+  static command = 'remote'
+  static description = 'adds a git remote to an app repo'
+  static help = `extra arguments will be passed to git remote add
 
-// function * run (context, heroku) {
-//   git = git(context)
-//   let appName = context.flags.app || context.args.shift()
-//   if (!appName) {
-//     throw new Error('Specify an app with --app')
-//   }
-//   let app = yield heroku.get(`/apps/${appName}`)
-//   let remote = context.flags.remote || (yield git.remoteFromGitConfig()) || 'heroku'
-//   let remotes = yield git.exec(['remote'])
-//   let url = git.url(app.name, context.flags['ssh-git'])
-//   if (includes(remotes.split('\n'), remote)) {
-//     yield git.exec(['remote', 'set-url', remote, url].concat(context.args))
-//   } else {
-//     yield git.exec(['remote', 'add', remote, url].concat(context.args))
-//   }
-//   let newRemote = yield git.remoteUrl(remote)
-//   cli.log(`set git remote ${cli.color.cyan(remote)} to ${cli.color.cyan(newRemote)}`)
-// }
+Examples:
 
-// module.exports = {
-//   topic: 'git',
-//   command: 'remote',
-//   description: 'adds a git remote to an app repo',
-//   help: `extra arguments will be passed to git remote add
+  # set git remote heroku to https://git.heroku.com/example.git
+  $ heroku git:remote -a example
 
-// Examples:
+  # set git remote heroku-staging to https://git.heroku.com/example-staging.git
+  $ heroku git:remote --remote heroku-staging -a example`
+  static variableArgs = true
 
-//   # set git remote heroku to https://git.heroku.com/example.git
-//   $ heroku git:remote -a example
+  static flags = {
+    app: flags.string({char: 'a', description: 'the Heroku app to use'}),
+    remote: flags.string({char: 'r', description: 'the git remote to create'}),
+    'ssh-git': flags.boolean({description: 'use SSH git protocol'})
+  }
 
-//   # set git remote heroku-staging to https://git.heroku.com/example-staging.git
-//   $ heroku git:remote --remote heroku-staging -a example`,
-//   needsAuth: true,
-//   variableArgs: true,
-//   flags: [
-//     {name: 'app', char: 'a', hasValue: true, description: 'the Heroku app to use'},
-//     {name: 'remote', char: 'r', hasValue: true, description: 'the git remote to create'},
-//     {name: 'ssh-git', description: 'use SSH git protocol'}
-//   ],
-//   run: cli.command(co.wrap(run))
-// }
+  async run () {
+    const git = require('../git').default
+    let appName = this.flags.app || this.argv.shift()
+    if (!appName) throw new Error('Specify an app with --app')
+    let app = await this.heroku.get(`/apps/${appName}`)
+    let remote = this.flags.remote || (await git.remoteFromGitConfig()) || 'heroku'
+    let remotes = await git.exec(['remote'])
+    let url = git.url(app.name, this.flags['ssh-git'])
+    if (includes(remotes.split('\n'), remote)) {
+      await git.exec(['remote', 'set-url', remote, url].concat(this.argv))
+    } else {
+      await git.exec(['remote', 'add', remote, url].concat(this.argv))
+    }
+    let newRemote = await git.remoteUrl(remote)
+    this.out.log(`set git remote ${this.out.color.cyan(remote)} to ${this.out.color.cyan(newRemote)}`)
+  }
+}
+
+function includes (array, item) {
+  return array.indexOf(item) !== -1
+}
