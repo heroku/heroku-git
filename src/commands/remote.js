@@ -37,6 +37,7 @@ Examples:
       await git.exec(['remote', 'add', remote, url].concat(this.argv))
     }
     let newRemote = await git.remoteUrl(remote)
+    // TODO: make sure this works
     this.out.log(`set git remote ${this.out.color.cyan(remote)} to ${this.out.color.cyan(newRemote)}`)
   }
 }

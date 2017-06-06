@@ -2,14 +2,20 @@
 
 import GitRemote from './remote'
 import nock from 'nock'
+import git from '../git'
+
+jest.mock('../git')
 
 const api = nock('https://api.heroku.com')
 
 beforeEach(() => nock.cleanAll())
-afterEach(() => api.done())
+afterEach(() => {
+  jest.resetAllMocks()
+  api.done()
+})
 
 describe('git:remote', () => {
-  it('errors if no app', async () => {
+  test('errors if no app', async () => {
     expect.assertions(1)
     try {
       await GitRemote.mock()
@@ -18,41 +24,54 @@ describe('git:remote', () => {
     }
   })
 
-  it.only('replaces an http-git remote', function () {
-    let git = require('../mock/git')
-    let mock = sinon.mock(git)
-    mock.expects('exec').withExactArgs(['remote']).once().returns(Promise.resolve('heroku'))
-    mock.expects('exec').withExactArgs(['remote', 'set-url', 'heroku', 'https://git.heroku.com/myapp.git']).once().returns(Promise.resolve())
-    let remote = proxyquire('../../commands/git/remote', {'../../lib/git': () => git})
-    let api = nock('https://api.heroku.com')
+  test('replaces an http-git remote', async () => {
+    expect.assertions(5)
+    git.exec.mockImplementationOnce(async args => {
+      expect(args).toEqual(['remote'])
+      return 'heroku'
+    })
+    git.url.mockImplementationOnce(app => {
+      expect(app).toEqual('myapp')
+      return `https://git.heroku.com/${app}.git`
+    })
+    git.exec.mockImplementationOnce(async args => {
+      expect(args).toEqual(['remote', 'set-url', 'heroku', 'https://git.heroku.com/myapp.git'])
+    })
+    git.remoteUrl.mockImplementationOnce(async args => {
+      expect(args).toEqual('heroku')
+      return `https://git.heroku.com/myapp.git`
+    })
+    api
       .get('/apps/myapp')
       .reply(200, {name: 'myapp'})
 
-    return remote.run({flags: {app: 'myapp'}, args: []})
-    .then(() => expect(cli.stdout, 'to equal', 'set git remote heroku to https://git.heroku.com/myapp.git\n'))
-    .then(() => {
-      mock.verify()
-      mock.restore()
-      api.done()
-    })
+    let cmd = await GitRemote.mock('--app=myapp')
+    expect(cmd.out.stdout.output).toEqual('set git remote heroku to https://git.heroku.com/myapp.git\n')
   })
 
-  it('adds an http-git remote', function () {
-    let git = require('../mock/git')
-    let mock = sinon.mock(git)
-    mock.expects('exec').withExactArgs(['remote']).once().returns(Promise.resolve(''))
-    mock.expects('exec').withExactArgs(['remote', 'add', 'heroku', 'https://git.heroku.com/myapp.git']).once().returns(Promise.resolve())
-    let remote = proxyquire('../../commands/git/remote', {'../../lib/git': () => git})
-    let api = nock('https://api.heroku.com')
+  test('adds an http-git remote', async () => {
+    expect.assertions(5)
+    git.exec.mockImplementationOnce(async args => {
+      expect(args).toEqual(['remote'])
+      return ''
+    })
+    git.url.mockImplementationOnce(app => {
+      expect(app).toEqual('myapp')
+      return `https://git.heroku.com/${app}.git`
+    })
+    git.exec.mockImplementationOnce(async args => {
+      expect(args).toEqual(['remote', 'add', 'heroku', 'https://git.heroku.com/myapp.git'])
+      return ''
+    })
+    git.remoteUrl.mockImplementationOnce(async args => {
+      expect(args).toEqual('heroku')
+      return `https://git.heroku.com/myapp.git`
+    })
+    api
       .get('/apps/myapp')
       .reply(200, {name: 'myapp'})
 
-    return remote.run({flags: {app: 'myapp'}, args: []})
-    .then(() => expect(cli.stdout, 'to equal', 'set git remote heroku to https://git.heroku.com/myapp.git\n'))
-    .then(() => {
-      mock.verify()
-      mock.restore()
-      api.done()
-    })
+    let cmd = await GitRemote.mock('--app=myapp')
+    expect(cmd.out.stdout.output).toEqual('set git remote heroku to https://git.heroku.com/myapp.git\n')
   })
 })
