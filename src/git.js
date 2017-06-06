@@ -2,15 +2,12 @@
 
 import cp from 'child_process'
 import {vars} from 'cli-engine-heroku/lib/api_client'
+import {promisify} from 'util'
 
 export default class Git {
-  static exec (args: string[]) {
-    return new Promise(function (resolve, reject) {
-      cp.execFile('git', args, function (error, stdout) {
-        if (error) return reject(error)
-        resolve(stdout.trim())
-      })
-    })
+  static async exec (args: string[]) {
+    let stdout = await promisify(cp.execFile)('git', args)
+    return stdout.trim()
   }
 
   static spawn (args: string[]) {
@@ -22,7 +19,7 @@ export default class Git {
   }
 
   static remoteFromGitConfig () {
-    return this.exec(['config', 'heroku.remote']).catch(function () {})
+    return this.exec(['config', 'heroku.remote']).catch(() => {})
   }
 
   static sshGitUrl (app) {
@@ -33,14 +30,12 @@ export default class Git {
     return `https://${vars.httpGitHost}/${app}.git`
   }
 
-  static remoteUrl (name) {
-    return this.exec(['remote', '-v'])
-    .then(function (remotes) {
-      return remotes.split('\n')
-      .map((r) => r.split('\t'))
-      .find((r) => r[0] === name)[1]
-      .split(' ')[0]
-    })
+  static async remoteUrl (name) {
+    let remotes = await this.exec(['remote', '-v'])
+    return remotes.split('\n')
+    .map((r) => r.split('\t'))
+    .find((r) => r[0] === name)[1]
+    .split(' ')[0]
   }
 
   static url (app, ssh) {

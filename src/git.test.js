@@ -1,48 +1,49 @@
-'use strict'
-/* global describe it beforeEach afterEach */
+// @flow
 
-let sinon = require('sinon')
-let expect = require('unexpected')
-let git = require('./git')({httpGitHost: 'git.heroku.com', gitHost: 'heroku.com'})
-let cp = require('child_process')
-let EventEmitter = require('events')
+import git from './git'
+import cp from 'child_process'
+import EventEmitter from 'events'
+
+jest.mock('child_process')
 
 describe('git', function () {
-  let mock
-  beforeEach(() => {
-    mock = sinon.mock(cp)
-  })
-  afterEach(() => mock.restore())
+  afterEach(jest.resetAllMocks)
 
-  it('runs exec', function () {
-    mock.expects('execFile').withArgs('git', ['remote']).yieldsAsync(null, 'foo')
-    return git.exec(['remote'])
-    .then((data) => {
-      expect(data, 'to equal', 'foo')
-      mock.verify()
+  test('runs exec', async () => {
+    cp.execFile.mockImplementationOnce((cmd, args, cb) => {
+      expect([cmd, args]).toEqual(['git', ['remote']])
+      cb(null, 'foo')
     })
+    let data = await git.exec(['remote'])
+    expect(data).toEqual('foo')
   })
 
-  it('runs spawn', function () {
-    let emitter = new EventEmitter()
-    mock.expects('spawn').withExactArgs('git', ['remote'], {stdio: [0, 1, 2]}).returns(emitter)
-    process.nextTick(() => emitter.emit('close'))
-    return git.spawn(['remote'])
-    .then(() => mock.verify())
+  test('runs spawn', async () => {
+    expect.assertions(1)
+    cp.spawn.mockImplementationOnce((cmd, args, opts) => {
+      expect([cmd, args, opts]).toEqual(['git', ['remote'], {stdio: [0, 1, 2]}])
+      let emitter = new EventEmitter()
+      process.nextTick(() => emitter.emit('close'))
+      return emitter
+    })
+    await git.spawn(['remote'])
   })
 
-  it('gets heroku git remote config', function () {
-    mock.expects('execFile').withArgs('git', ['config', 'heroku.remote']).yieldsAsync(null, 'staging')
-    return git.remoteFromGitConfig()
-    .then((remote) => expect(remote, 'to equal', 'staging'))
-    .then(() => mock.verify())
+  test('gets heroku git remote config', async () => {
+    // mock.expects('execFile').withArgs('git', ['config', 'heroku.remote']).yieldsAsync(null, 'staging')
+    cp.execFile.mockImplementationOnce((cmd, args, cb) => {
+      expect([cmd, args]).toEqual(['git', ['config', 'heroku.remote']])
+      cb(null, 'staging')
+    })
+    let remote = await git.remoteFromGitConfig()
+    expect(remote).toEqual('staging')
   })
 
-  it('returns an http git url', function () {
-    expect(git.url('foo', false), 'to equal', 'https://git.heroku.com/foo.git')
+  test('returns an http git url', function () {
+    expect(git.url('foo', false)).toEqual('https://git.heroku.com/foo.git')
   })
 
-  it('returns an ssh git url', function () {
-    expect(git.url('foo', true), 'to equal', 'git@heroku.com:foo.git')
+  test('returns an ssh git url', function () {
+    expect(git.url('foo', true)).toEqual('git@heroku.com:foo.git')
   })
 })
