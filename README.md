@@ -5,8 +5,6 @@ Heroku CLI plugin to manage local git repos.
 
 [![Version](https://img.shields.io/npm/v/@heroku-cli/plugin-git.svg)](https://npmjs.org/package/@heroku-cli/plugin-git)
 [![CircleCI](https://circleci.com/gh/heroku/heroku-git/tree/master.svg?style=shield)](https://circleci.com/gh/heroku/heroku-git/tree/master)
-[![Appveyor CI](https://ci.appveyor.com/api/projects/status/github/heroku/heroku-git?branch=master&svg=true)](https://ci.appveyor.com/project/heroku/heroku-git/branch/master)
-[![Codecov](https://codecov.io/gh/heroku/heroku-git/branch/master/graph/badge.svg)](https://codecov.io/gh/heroku/heroku-git)
 [![Downloads/week](https://img.shields.io/npm/dw/@heroku-cli/plugin-git.svg)](https://npmjs.org/package/@heroku-cli/plugin-git)
 [![License](https://img.shields.io/npm/l/@heroku-cli/plugin-git.svg)](https://github.com/heroku/heroku-git/blob/master/package.json)
 
